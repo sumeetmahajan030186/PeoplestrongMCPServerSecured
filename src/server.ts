@@ -33,7 +33,7 @@ app.use(
 // 2.  Discovery document  (.well-known/mcp-tools)
 // ------------------------------------------------------------------
 app.get(
-  "/.well-known/mcp-tools",
+  "/mcp/.well-known/mcp-tools",
   async (req, res, next) => {
     /* ① check for Bearer token */
     const authHeader = req.get("authorization");
@@ -74,6 +74,14 @@ app.get(
   }
 );
 
+app.get("/mcp/.well-known/oauth-protected-resource", (_req, res) => {
+  res.json({
+    resource: "https://peoplestrongmcpserversecured.onrender.com/mcp",
+    authorization_servers: [
+      "https://uat-auth.peoplestrong.com/auth/realms/3"
+    ]
+  });
+});
 // ------------------------------------------------------------------
 // 3.  Session-based /mcp endpoint (Streamable-HTTP)
 // ------------------------------------------------------------------

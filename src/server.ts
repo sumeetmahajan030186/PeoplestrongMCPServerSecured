@@ -74,17 +74,16 @@ app.get("/mcp/.well-known/oauth-protected-resource", (_req, res) => {
 });
 
 app.get('/.well-known/oauth-authorization-server', (_req, res) => {
-  const base = issuer.replace(/\/$/, '');     // defensively trim trailing “/”
 
   res.json({
-    issuer:                      base,
-    authorization_endpoint:      `${base}/protocol/openid-connect/auth`,
-    token_endpoint:              `${base}/protocol/openid-connect/token`,
-    token_introspection_endpoint:`${base}/protocol/openid-connect/token/introspect`,
-    userinfo_endpoint:           `${base}/protocol/openid-connect/userinfo`,
-    end_session_endpoint:        `${base}/protocol/openid-connect/logout`,
-    jwks_uri:                    `${base}/protocol/openid-connect/certs`,
-    check_session_iframe:        `${base}/protocol/openid-connect/login-status-iframe.html`,
+    issuer:                      issuer,
+    authorization_endpoint:      `${issuer}/protocol/openid-connect/auth`,
+    token_endpoint:              `${issuer}/protocol/openid-connect/token`,
+    token_introspection_endpoint:`${issuer}/protocol/openid-connect/token/introspect`,
+    userinfo_endpoint:           `${issuer}/protocol/openid-connect/userinfo`,
+    end_session_endpoint:        `${issuer}/protocol/openid-connect/logout`,
+    jwks_uri:                    `${issuer}/protocol/openid-connect/certs`,
+    check_session_iframe:        `${issuer}/protocol/openid-connect/login-status-iframe.html`,
     grant_types_supported: [
       'authorization_code', 'implicit', 'refresh_token',
       'password', 'client_credentials'
@@ -109,7 +108,7 @@ app.get('/.well-known/oauth-authorization-server', (_req, res) => {
       'RS256','HS384','ES512','PS256','PS512','RS512','none'
     ],
     response_modes_supported: ['query','fragment','form_post'],
-    registration_endpoint:       `${base}/clients-registrations/openid-connect`,
+    registration_endpoint:       `${issuer}/clients-registrations/openid-connect`,
     token_endpoint_auth_methods_supported: [
       'private_key_jwt','client_secret_basic','client_secret_post',
       'tls_client_auth','client_secret_jwt'

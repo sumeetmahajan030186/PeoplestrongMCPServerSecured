@@ -39,7 +39,7 @@ app.get(
     const authHeader = req.get("authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       /* → not authenticated: challenge */
-      res.set("WWW-Authenticate", `Bearer realm="PeoplestrongMCP"`);
+      res.set("WWW-Authenticate", `Bearer realm="OAuth"`);
       return res.status(401).end();
     }
 
@@ -51,7 +51,7 @@ app.get(
       	throw new Error("insufficient_scope");
       return next(); // token OK → fall through to JSON below
     } catch {
-      res.set("WWW-Authenticate", `error="invalid_token"`);
+      res.set("WWW-Authenticate", `realm="OAuth"`);
       return res.status(401).end();
     }
   },
@@ -80,6 +80,14 @@ app.get(
 const cache: Record<string, StreamableHTTPServerTransport> = {};
 
 app.post("/mcp", async (req, res) => {
+
+  const authHeader = req.get("authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
+    /* → not authenticated: challenge */
+    res.set("WWW-Authenticate", `Bearer realm="OAuth"`);
+    return res.status(401).end();
+  }
+	
   const sid = req.headers["mcp-session-id"] as string | undefined;
   let transport = sid && cache[sid];
 
@@ -115,6 +123,14 @@ app.post("/mcp", async (req, res) => {
 });
 
 app.get("/mcp", (req, res) => {
+
+  const authHeader = req.get("authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
+    /* → not authenticated: challenge */
+    res.set("WWW-Authenticate", `Bearer realm="OAuth"`);
+    return res.status(401).end();
+  }
+
   const sid = req.headers["mcp-session-id"] as string;
   cache[sid]?.handleRequest(req, res);
 });

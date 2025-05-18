@@ -176,7 +176,25 @@ app.post("/mcp", async (req, res) => {
         ]
       })
     );
+ srv.tool(
+    "getWeather",
+    "Get current weather by city name",
+    { city: z.string() },
+    async ({ city }) => {
+      const res = await fetch(`https://wttr.in/${encodeURIComponent(city)}?format=j1`);
+      if (!res.ok) throw new Error(`Weather API responded with ${res.status}`);
 
+      const { current_condition: [cur] } = await res.json() as any;
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Weather in ${city}: ${cur.temp_C} °C, ${cur.weatherDesc[0].value}`
+          }
+        ]
+      };
+    }
+  );
     await srv.connect(transport);
   }
 

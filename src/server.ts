@@ -21,13 +21,13 @@ const issuer  = new URL(process.env.OIDC_ISSUER!);
 const baseUrl = new URL(process.env.PUBLIC_BASE_URL!);
 const auth    = makeKeycloakProvider(issuer);
 
-app.use(
+/*app.use(
   mcpAuthRouter({
     provider:  auth,
     issuerUrl: issuer,
     baseUrl
   })
-);
+);*/
 
 // ------------------------------------------------------------------
 // 2.  Discovery document  (.well-known/mcp-tools)

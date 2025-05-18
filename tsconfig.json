@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "module": "ES2022",
+    "target": "ES2022",
+    "moduleResolution": "bundler",
+    "outDir": "dist",
+    "rootDir": "."
+  },
+  "ts-node": {
+    "esm": true,           
+    "transpileOnly": true
+  }
+}

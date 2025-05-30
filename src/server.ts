@@ -118,6 +118,7 @@ const streams = new Map<string, SSEServerTransport>();
 
 // SSE connection entry
 app.get("/", (req, res) => {
+    console.log("in app.get(/)",req);
   const t = new SSEServerTransport("/messages", res);
   streams.set(t.sessionId, t);
   mcp.connect(t).catch(console.error);
@@ -126,6 +127,7 @@ app.get("/", (req, res) => {
 
 // Session reconnect endpoint (optional)
 app.get("/sse", (req, res) => {
+        console.log("in app.get(/sse)",req);
   const id = String(req.query.id || "");
   if (!id) return res.status(400).send("session id required");
   const t = new SSEServerTransport("/messages", res);
@@ -136,6 +138,8 @@ app.get("/sse", (req, res) => {
 
 // Tool and chat messages
 app.post("/messages", async (req, res) => {
+        console.log("in app.post(/messages)",req);
+
   const id = String(req.query.sessionId || req.query.id || req.body.sessionId || req.body.id || "");
   const t = streams.get(id);
   if (!t) return res.status(202).end();

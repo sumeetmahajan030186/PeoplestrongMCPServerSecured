@@ -98,8 +98,9 @@ app.use((req, res, next) => {
   }
   const token = authHeader.slice(7);
   auth.verifyAccessToken(token)
-    .then(() => next())
+    .then(() => {console.log("validated");next()})
     .catch(() => {
+        console.log("non validated");
       res.set("WWW-Authenticate", `Bearer realm=\"OAuth\"`);
       return res.status(401).end();
     });

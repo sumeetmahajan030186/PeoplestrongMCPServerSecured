@@ -17,9 +17,22 @@ app.use(express.json());
 const issuer = new URL(process.env.OIDC_ISSUER!);
 const auth = makeKeycloakProvider(issuer);
 
+// Well-known endpoints for OAuth
+app.get("/.well-known/oauth-protected-resource", (_req, res) => {
+  res.json({
+    resource: `${process.env.PUBLIC_BASE_URL}/`,
+    authorization_servers: [issuer.href]
+  });
+});
+
+app.get("/.well-known/oauth-authorization-server", (_req, res) => {
+  res.redirect(307, `${issuer}/.well-known/openid-configuration`);
+});
+
 // ----- JWT middleware -----
 app.use((req, res, next) => {
   const authHeader = req.headers["authorization"];
+  console.log("AuthHeader:",authHeader);
   if (!authHeader?.startsWith("Bearer ")) {
     res.set("WWW-Authenticate", `Bearer realm=\"OAuth\"`);
     return res.status(401).end();
@@ -71,17 +84,7 @@ app.post("/messages", async (req, res) => {
   await t.handlePostMessage(req, res, req.body);
 });
 
-// Well-known endpoints for OAuth
-app.get("/.well-known/oauth-protected-resource", (_req, res) => {
-  res.json({
-    resource: `${process.env.PUBLIC_BASE_URL}/`,
-    authorization_servers: [issuer.href]
-  });
-});
 
-app.get("/.well-known/oauth-authorization-server", (_req, res) => {
-  res.redirect(307, `${issuer}/.well-known/openid-configuration`);
-});
 
 const port = Number(process.env.PORT || 3000);
 app.listen(port, "0.0.0.0", () => console.log(`✅ SSE MCP server (OAuth) on port ${port}`));

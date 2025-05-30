@@ -1,222 +1,87 @@
-// src/server.ts ----------------------------------------------------
+// server.ts — SSE-based MCP server behind OAuth
+
 import "dotenv/config";
 import express from "express";
-import { z } from "zod";
 import crypto from "node:crypto";
-
+import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { StreamableHTTPServerTransport }
-  from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
+import jwt from "jsonwebtoken";
+import { registerTools } from "./tools/tools.js";
 import { makeKeycloakProvider } from "./auth/keycloakProvider.js";
 
 const app = express();
 app.use(express.json());
 
-// ------------------------------------------------------------------
-// 1.  Auth-provider + router
-// ------------------------------------------------------------------
-const issuer  = new URL(process.env.OIDC_ISSUER!);
-const baseUrl = new URL(process.env.PUBLIC_BASE_URL!);
-const auth    = makeKeycloakProvider(issuer);
+// ----- OAuth provider setup -----
+const issuer = new URL(process.env.OIDC_ISSUER!);
+const auth = makeKeycloakProvider(issuer);
 
-// ------------------------------------------------------------------
-// 2.  Discovery document  (.well-known/mcp-tools)
-// ------------------------------------------------------------------
-app.get(
-  "/mcp/.well-known/mcp-tools",
-  async (req, res, next) => {
-    /* ① check for Bearer token */
-    const authHeader = req.get("authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      /* → not authenticated: challenge */
-      res.set("WWW-Authenticate", `Bearer realm="OAuth"`);
-      return res.status(401).end();
-    }
-
-    /* ② validate the token with your provider */
-    try {
-      // strip "Bearer "
-      const info = await auth.verifyAccessToken(authHeader.slice(7));
-      if (!info.scopes.includes("offer:write"))
-      	throw new Error("insufficient_scope");
-      return next(); // token OK → fall through to JSON below
-    } catch {
-      res.set("WWW-Authenticate", `realm="OAuth"`);
-      return res.status(401).end();
-    }
-  },
-  (_req, res) => {
-    /* ③ authenticated response */
-    res.json({
-      version: "2025-03-26",
-      tools: {
-        createOfferLetter: {
-          description: "Generate offer letter for a candidate",
-          parameters: {
-            type: "object",
-            properties: { candidateId: { type: "string" } },
-            required: ["candidateId"]
-          },
-          auth: { type: "oauth2", client_id: "claude-mcp", scopes: ["offer:write"] }
-        }
-      }
-    });
+// ----- JWT middleware -----
+app.use((req, res, next) => {
+  const authHeader = req.headers["authorization"];
+  if (!authHeader?.startsWith("Bearer ")) {
+    res.set("WWW-Authenticate", `Bearer realm=\"OAuth\"`);
+    return res.status(401).end();
   }
-);
+  const token = authHeader.slice(7);
+  auth.verifyAccessToken(token)
+    .then(() => next())
+    .catch(() => {
+      res.set("WWW-Authenticate", `Bearer realm=\"OAuth\"`);
+      return res.status(401).end();
+    });
+});
 
-app.get("/mcp/.well-known/oauth-protected-resource", (_req, res) => {
+// ----- MCP Server -----
+const mcp = new McpServer({
+  name: "PeoplestrongMCP",
+  version: "2.0.0",
+  authProvider: auth
+});
+
+registerTools(mcp);
+
+const streams = new Map<string, SSEServerTransport>();
+
+// SSE connection entry
+app.get("/", (req, res) => {
+  const t = new SSEServerTransport("/messages", res);
+  streams.set(t.sessionId, t);
+  mcp.connect(t).catch(console.error);
+  res.on("close", () => streams.delete(t.sessionId));
+});
+
+// Session reconnect endpoint (optional)
+app.get("/sse", (req, res) => {
+  const id = String(req.query.id || "");
+  if (!id) return res.status(400).send("session id required");
+  const t = new SSEServerTransport("/messages", res);
+  streams.set(id, t);
+  mcp.connect(t).catch(console.error);
+  res.on("close", () => streams.delete(id));
+});
+
+// Tool and chat messages
+app.post("/messages", async (req, res) => {
+  const id = String(req.query.sessionId || req.query.id || req.body.sessionId || req.body.id || "");
+  const t = streams.get(id);
+  if (!t) return res.status(202).end();
+
+  await t.handlePostMessage(req, res, req.body);
+});
+
+// Well-known endpoints for OAuth
+app.get("/.well-known/oauth-protected-resource", (_req, res) => {
   res.json({
-    resource: "https://peoplestrongmcpserversecured.onrender.com/mcp",
-    authorization_servers: [
-      `${issuer}`
-    ]
+    resource: `${process.env.PUBLIC_BASE_URL}/`,
+    authorization_servers: [issuer.href]
   });
 });
 
-app.get('/.well-known/oauth-authorization-server', (_req, res) => {
-
-  res.json({
-    issuer:                      issuer,
-    authorization_endpoint:      `${issuer}/protocol/openid-connect/auth`,
-    token_endpoint:              `${issuer}/protocol/openid-connect/token`,
-    token_introspection_endpoint:`${issuer}/protocol/openid-connect/token/introspect`,
-    userinfo_endpoint:           `${issuer}/protocol/openid-connect/userinfo`,
-    end_session_endpoint:        `${issuer}/protocol/openid-connect/logout`,
-    jwks_uri:                    `${issuer}/protocol/openid-connect/certs`,
-    check_session_iframe:        `${issuer}/protocol/openid-connect/login-status-iframe.html`,
-    grant_types_supported: [
-      'authorization_code', 'implicit', 'refresh_token',
-      'password', 'client_credentials'
-    ],
-    response_types_supported: [
-      'code', 'none', 'id_token', 'token', 'id_token token',
-      'code id_token', 'code token', 'code id_token token'
-    ],
-    subject_types_supported: ['public', 'pairwise'],
-    id_token_signing_alg_values_supported: [
-      'PS384','ES384','RS384','HS256','HS512','ES256',
-      'RS256','HS384','ES512','PS256','PS512','RS512'
-    ],
-    id_token_encryption_alg_values_supported: ['RSA-OAEP','RSA1_5'],
-    id_token_encryption_enc_values_supported: ['A128GCM','A128CBC-HS256'],
-    userinfo_signing_alg_values_supported: [
-      'PS384','ES384','RS384','HS256','HS512','ES256',
-      'RS256','HS384','ES512','PS256','PS512','RS512','none'
-    ],
-    request_object_signing_alg_values_supported: [
-      'PS384','ES384','RS384','HS256','HS512','ES256',
-      'RS256','HS384','ES512','PS256','PS512','RS512','none'
-    ],
-    response_modes_supported: ['query','fragment','form_post'],
-    registration_endpoint:       `${issuer}/clients-registrations/openid-connect`,
-    token_endpoint_auth_methods_supported: [
-      'private_key_jwt','client_secret_basic','client_secret_post',
-      'tls_client_auth','client_secret_jwt'
-    ],
-    token_endpoint_auth_signing_alg_values_supported: [
-      'PS384','ES384','RS384','HS256','HS512','ES256',
-      'RS256','HS384','ES512','PS256','PS512','RS512'
-    ],
-    claims_supported: [
-      'aud','sub','iss','auth_time','name','given_name','family_name',
-      'preferred_username','email','acr'
-    ],
-    claim_types_supported: ['normal'],
-    claims_parameter_supported:  false,
-    scopes_supported: [
-      'openid','offer:write','microprofile-jwt','web-origins','roles',
-      'offline_access','phone','address','email','profile'
-    ],
-    request_parameter_supported:          true,
-    request_uri_parameter_supported:      true,
-    require_request_uri_registration:     true,
-    code_challenge_methods_supported:     ['plain','S256'],
-    tls_client_certificate_bound_access_tokens: true,
-  });
+app.get("/.well-known/oauth-authorization-server", (_req, res) => {
+  res.redirect(307, `${issuer}/.well-known/openid-configuration`);
 });
 
-// ------------------------------------------------------------------
-// 3.  Session-based /mcp endpoint (Streamable-HTTP)
-// ------------------------------------------------------------------
-const cache: Record<string, StreamableHTTPServerTransport> = {};
-
-app.post("/mcp", async (req, res) => {
-
-  const authHeader = req.get("authorization");
-  if (!authHeader?.startsWith("Bearer ")) {
-    /* → not authenticated: challenge */
-    res.set("WWW-Authenticate", `Bearer realm="OAuth"`);
-    return res.status(401).end();
-  }
-	
-  const sid = req.headers["mcp-session-id"] as string | undefined;
-  let transport = sid && cache[sid];
-
-  if (!transport) {
-    transport = new StreamableHTTPServerTransport({
-      /* use caller-supplied session id or generate a new one */
-      sessionIdGenerator: () => sid ?? crypto.randomUUID()
-    });
-    cache[transport.sessionId] = transport;
-
-    const srv = new McpServer({
-      name: "PeoplestrongMCP",
-      version: "2.0.0",
-      authProvider: auth
-    });
-
-    srv.tool(
-      "createOfferLetter",
-      "Generate offer letter for a candidate",
-      { candidateId: z.string() },            // ZodRawShape
-      async ({ candidateId }) => ({
-        content: [
-          { type: "text",
-            text: `Offer letter created for candidate ${candidateId}` }
-        ]
-      })
-    );
- srv.tool(
-    "getWeather",
-    "Get current weather by city name",
-    { city: z.string() },
-    async ({ city }) => {
-      const res = await fetch(`https://wttr.in/${encodeURIComponent(city)}?format=j1`);
-      if (!res.ok) throw new Error(`Weather API responded with ${res.status}`);
-
-      const { current_condition: [cur] } = await res.json() as any;
-      return {
-        content: [
-          {
-            type: "text",
-            text: `Weather in ${city}: ${cur.temp_C} °C, ${cur.weatherDesc[0].value}`
-          }
-        ]
-      };
-    }
-  );
-    await srv.connect(transport);
-  }
-
-  await transport.handleRequest(req, res, req.body);
-});
-
-app.get("/mcp", (req, res) => {
-
-  const authHeader = req.get("authorization");
-  if (!authHeader?.startsWith("Bearer ")) {
-    /* → not authenticated: challenge */
-    res.set("WWW-Authenticate", `Bearer realm="OAuth"`);
-    return res.status(401).end();
-  }
-
-  const sid = req.headers["mcp-session-id"] as string;
-  cache[sid]?.handleRequest(req, res);
-});
-
-// ------------------------------------------------------------------
-const port = Number(process.env.PORT) || 8000;
-app.listen(port, () =>
-  console.log(`✅ MCP server running on port : ${process.env.PORT} or 8000`)
-);
-
+const port = Number(process.env.PORT || 3000);
+app.listen(port, "0.0.0.0", () => console.log(`✅ SSE MCP server (OAuth) on port ${port}`));

@@ -6,9 +6,17 @@ import crypto from "node:crypto";
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
-import jwt from "jsonwebtoken";
 import { registerTools } from "./tools/tools.js";
 import { makeKeycloakProvider } from "./auth/keycloakProvider.js";
+import { generateSessionToken } from "./auth/sessionTokenProvider.js";
+
+declare global {
+  namespace Express {
+    interface Request {
+      sessionToken?: string;
+    }
+  }
+}
 
 const app = express();
 app.use(express.json());
@@ -16,11 +24,12 @@ app.use(express.json());
 // ----- OAuth provider setup -----
 const issuer = new URL(process.env.OIDC_ISSUER!);
 const auth = makeKeycloakProvider(issuer);
-
+let toolsRegistered = false;
+const sessionTokenCache = new Map<string, string>();
 // Well-known endpoints for OAuth
 app.get("/.well-known/oauth-protected-resource", (_req, res) => {
   res.json({
-    resource: `${process.env.PUBLIC_BASE_URL}/`,
+    resource: process.env.PUBLIC_BASE_URL,
     authorization_servers: [issuer.href]
   });
 });
@@ -88,15 +97,39 @@ app.get('/.well-known/oauth-authorization-server', (_req, res) => {
   });
 });
 
+const mcp = new McpServer({
+  name: "PeoplestrongMCP",
+  version: "2.0.0",
+  authProvider: auth
+});
+
 // ----- JWT middleware -----
-app.use((req, res, next) => {
+app.use(async(req, res, next) => {
   const authHeader = req.headers["authorization"];
   console.log("AuthHeader:",authHeader);
   if (!authHeader?.startsWith("Bearer ")) {
     res.set("WWW-Authenticate", `Bearer realm=\"OAuth\"`);
     return res.status(401).end();
   }
-  const token = authHeader.slice(7);
+  const accessToken = authHeader.slice(7);
+  if (sessionTokenCache.has(accessToken)) {
+    req.sessionToken = sessionTokenCache.get(accessToken)!;
+  } else {
+    try {
+      const sessionToken = await generateSessionToken(accessToken);
+      sessionTokenCache.set(accessToken, sessionToken);
+      req.sessionToken = sessionToken;
+    } catch (err) {
+      console.error("Failed to generate session token", err);
+      return res.status(500).send("Session initialization failed");
+    }
+  }
+
+  if (!toolsRegistered) {
+    registerTools(mcp);
+    toolsRegistered = true;
+  }
+
   next();
 //   auth.verifyAccessToken(token)
 //     .then(() => {console.log("validated");next()})
@@ -107,49 +140,41 @@ app.use((req, res, next) => {
 //     });
 });
 
-// ----- MCP Server -----
-const mcp = new McpServer({
-  name: "PeoplestrongMCP",
-  version: "2.0.0",
-  authProvider: auth
-});
-
-registerTools(mcp);
-
 const streams = new Map<string, SSEServerTransport>();
+export const transportContext = new WeakMap<SSEServerTransport, { sessionToken: string }>();
 
 // SSE connection entry
 app.get("/", (req, res) => {
-    console.log("in app.get(/)",req);
-  const t = new SSEServerTransport("/messages", res);
-  streams.set(t.sessionId, t);
-  mcp.connect(t).catch(console.error);
-  res.on("close", () => streams.delete(t.sessionId));
+    console.log("SSE connection established", req.headers["authorization"] ? "with auth" : "without auth");
+    const t = new SSEServerTransport("/messages", res);
+    streams.set(t.sessionId, t);
+    mcp.connect(t).catch(console.error);
+    res.on("close", () => streams.delete(t.sessionId));
 });
 
 // Session reconnect endpoint (optional)
 app.get("/sse", (req, res) => {
-        console.log("in app.get(/sse)",req);
-  const id = String(req.query.id || "");
-  if (!id) return res.status(400).send("session id required");
-  const t = new SSEServerTransport("/messages", res);
-  streams.set(id, t);
-  mcp.connect(t).catch(console.error);
-  res.on("close", () => streams.delete(id));
+    console.log("in app.get(/sse) GET");
+    const id = String(req.query.id || "");
+    if (!id) return res.status(400).send("session id required");
+    const t = new SSEServerTransport("/messages", res);
+    streams.set(id, t);
+    mcp.connect(t).catch(console.error);
+    res.on("close", () => streams.delete(id));
 });
 
 // Tool and chat messages
 app.post("/messages", async (req, res) => {
-        console.log("in app.post(/messages)",req);
+    console.log("in app.post(/messages) POST");
 
-  const id = String(req.query.sessionId || req.query.id || req.body.sessionId || req.body.id || "");
-  const t = streams.get(id);
-  if (!t) return res.status(202).end();
-
-  await t.handlePostMessage(req, res, req.body);
+    const id = String(req.query.sessionId || req.query.id || req.body.sessionId || req.body.id || "");
+    const t = streams.get(id);
+    if (!t) return res.status(202).end();
+    if (req.sessionToken) {
+        transportContext.set(t, { sessionToken: req.sessionToken });
+    }
+    await t.handlePostMessage(req, res, req.body);
 });
-
-
 
 const port = Number(process.env.PORT || 3000);
 app.listen(port, "0.0.0.0", () => console.log(`✅ SSE MCP server (OAuth) on port ${port}`));

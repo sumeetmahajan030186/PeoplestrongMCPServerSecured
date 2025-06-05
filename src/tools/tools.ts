@@ -5,5 +5,5 @@ import { registerWeather }     from "./misc/weather.js";
 
 export function registerTools(server: McpServer) {
   registerOfferLetter(server);
-  registerWeather(server);
+    registerWeather(server);
 }

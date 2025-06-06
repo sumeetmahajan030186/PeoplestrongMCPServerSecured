@@ -184,7 +184,6 @@ app.post("/messages", async (req, res) => {
   console.log("args : ", args);
   console.log("accessToken : ", accessToken);
   console.log("sessionToken : ", sessionToken);
-  if (!tool || !args) return res.status(400).send("Invalid tool request");
 
   await t.handlePostMessage(req, res, req.body);
 });

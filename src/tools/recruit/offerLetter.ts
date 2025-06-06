@@ -15,6 +15,7 @@ export function registerOfferLetter(server: McpServer) {
 
     console.log("Session Token:", sessionToken);
     console.log("Access Token:", accessToken);
+    console.log("Transport:", transport);
 
       return {
         content: [

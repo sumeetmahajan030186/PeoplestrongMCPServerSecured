@@ -60,7 +60,7 @@ export async function generateSessionToken(accessToken: string): Promise<string>
                     };
 
   const response = await fetch(url, request);
-  System.out.println(data);
+  console.log(response);
 
   if (!response.ok) {
     throw new Error(`Failed to get session token: ${response.status} ${response.statusText}`);

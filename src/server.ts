@@ -135,7 +135,7 @@ app.use(async(req, res, next) => {
   next();
 });
 
-const streams = new Map<string, SSEServerTransport>();
+export const streams = new Map<string, SSEServerTransport>();
 export const transportSessionTokenContext = new Map<SSEServerTransport, { sessionToken: string }>();
 export const transportAccessTokenContext = new Map<SSEServerTransport, { accessToken: string }>();
 
@@ -173,6 +173,7 @@ app.post("/messages", async (req, res) => {
 
     const id = String(req.query.sessionId || req.query.id || req.body.sessionId || req.body.id || "");
     const t = streams.get(id);
+
     if (!t) return res.status(202).end();
 
     await t.handlePostMessage(req, res, req.body);

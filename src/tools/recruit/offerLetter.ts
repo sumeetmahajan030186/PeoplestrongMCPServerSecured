@@ -3,6 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { transportSessionTokenContext } from "../../server.js";
 import { transportAccessTokenContext } from "../../server.js";
+import { streams } from "../../server.js";
 
 export function registerOfferLetter(server: McpServer) {
   server.tool(
@@ -11,6 +12,10 @@ export function registerOfferLetter(server: McpServer) {
     { candidateId: z.string() },
     async ({ candidateId }, context: any) => {
       const transport = context.transport as SSEServerTransport;
+      console.log("Transport instance inside handler:", transport);
+      console.log("Is same as stream.get(id):", streams.get(transport.sessionId) === transport);
+
+      console.log("Selected transport sessionId:", transport.sessionId);
       console.log("All transportSessionTokenContext keys:");
       for (const [key, value] of Array.from(transportSessionTokenContext.entries())) {
           console.log("→", key.sessionId, value.sessionToken);

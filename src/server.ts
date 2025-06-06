@@ -152,13 +152,7 @@ app.get("/", (req, res) => {
         console.log("transportAccessTokenContext is set ",req.accessToken);
         transportAccessTokenContext.set(t, { accessToken: req.accessToken });
     }
-    mcp.connect(t, async () => {
-       return {
-          transport: t,
-          sessionToken: transportSessionTokenContext.get(t)?.sessionToken,
-          accessToken: transportAccessTokenContext.get(t)?.accessToken,
-       };
-    }).catch(console.error);
+    mcp.connect(t).catch(console.error);
     res.on("close", () => streams.delete(t.sessionId));
 });
 
@@ -169,11 +163,7 @@ app.get("/sse", (req, res) => {
     if (!id) return res.status(400).send("session id required");
     const t = new SSEServerTransport("/messages", res);
     streams.set(id, t);
-    mcp.connect(t, async () => ({
-        transport: t,
-        sessionToken: transportSessionTokenContext.get(t)?.sessionToken,
-        accessToken: transportAccessTokenContext.get(t)?.accessToken,
-    })).catch(console.error);
+    mcp.connect(t).catch(console.error);
     res.on("close", () => streams.delete(id));
 });
 
@@ -186,9 +176,15 @@ app.post("/messages", async (req, res) => {
 
     if (!t) return res.status(202).end();
 
-    await t.handlePostMessage(req, res, req.body);
+    const sessionToken = transportSessionTokenContext.get(t)?.sessionToken;
+    const accessToken  = transportAccessTokenContext.get(t)?.accessToken;
+    await t.handlePostMessage(req, res, {
+        ...req.body,
+        transport: t,
+        sessionToken,
+        accessToken
+    });
 });
 
 const port = Number(process.env.PORT || 3000);
 app.listen(port, "0.0.0.0", () => console.log(`✅ SSE MCP server (OAuth) on port ${port}`));
-1

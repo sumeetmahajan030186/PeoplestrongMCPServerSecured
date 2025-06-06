@@ -1,8 +1,6 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
-import { transportSessionTokenContext } from "../../server.js";
-import { transportAccessTokenContext } from "../../server.js";
 import { streams } from "../../server.js";
 
 export function registerOfferLetter(server: McpServer) {
@@ -11,23 +9,12 @@ export function registerOfferLetter(server: McpServer) {
     "Generate offer letter for a candidate",
     { candidateId: z.string() },
     async ({ candidateId }, context: any) => {
-      const transport = context.transport as SSEServerTransport;
-      console.log("Transport instance inside handler:", transport);
-      console.log("Session token:", context.sessionToken);
-      console.log("Is same as stream.get(id):", streams.get(transport.sessionId) === transport);
+    const sessionToken = context.sessionToken ?? "[missing]";
+    const accessToken = context.accessToken ?? "[missing]";
+    const transport = context.transport;
 
-      console.log("Selected transport sessionId:", transport.sessionId);
-      console.log("All transportSessionTokenContext keys:");
-      for (const [key, value] of Array.from(transportSessionTokenContext.entries())) {
-          console.log("→", key.sessionId, value.sessionToken);
-      }
-      const sessionTokenCtx = transportSessionTokenContext.get(transport);
-      const accessTokenCtx = transportAccessTokenContext.get(transport);
-
-      const sessionToken = sessionTokenCtx?.sessionToken ?? "[missing]";
-      const accessToken = accessTokenCtx?.accessToken ?? "[missing]";
-      console.log("Session Token:", sessionToken);
-      console.log("Access Token:", accessToken);
+    console.log("Session Token:", sessionToken);
+    console.log("Access Token:", accessToken);
 
       return {
         content: [

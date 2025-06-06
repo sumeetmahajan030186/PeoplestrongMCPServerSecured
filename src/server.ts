@@ -178,14 +178,23 @@ app.post("/messages", async (req, res) => {
   const sessionToken = transportSessionTokenContext.get(t)?.sessionToken;
   const accessToken  = transportAccessTokenContext.get(t)?.accessToken;
 
-  const { tool, args } = req.body;
   console.log("Request body : ", req.body);
-  console.log("tool : ",tool);
-  console.log("args : ", args);
   console.log("accessToken : ", accessToken);
   console.log("sessionToken : ", sessionToken);
+    let message = req.body;
 
-  await t.handlePostMessage(req, res, req.body);
+    // Handle JSON-RPC tool call
+    if (message?.method === "tools/call" && message.params?.name) {
+      message = {
+        tool: message.params.name,
+        args: {
+          ...(message.params.arguments || {}),
+          __meta__: { sessionToken, accessToken, transport: t }
+        }
+      };
+    }
+
+    await t.handlePostMessage(req, res, message);
 });
 
 const port = Number(process.env.PORT || 3000);

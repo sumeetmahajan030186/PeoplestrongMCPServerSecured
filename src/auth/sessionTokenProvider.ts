@@ -7,7 +7,7 @@ interface TokenLoginResponse {
 }
 
 interface AccessTokenPayload {
-  orgID?: string;
+  OrgID?: string;
   preferred_username?: string;
   tenant_domain?: string;
   // Add more fields as required
@@ -32,12 +32,12 @@ function decodeAccessToken(token: string): AccessTokenPayload {
  */
 export async function generateSessionToken(accessToken: string): Promise<string> {
   const decoded = decodeAccessToken(accessToken);
-  const orgID = decoded.orgID;
+  const orgID = decoded.OrgID;
   const userName = decoded.preferred_username;
   const domain = decoded.tenant_domain;
 
   if (!orgID || !userName || !domain) {
-    throw new Error("Required fields (orgId or preferred_username or domain) missing in accessToken");
+    throw new Error("Required fields (OrgID or preferred_username or tenant_domain) missing in accessToken");
   }
 
   const response = await fetch("https://"+domain+"/api/v1/token/login", {

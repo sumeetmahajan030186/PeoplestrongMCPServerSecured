@@ -4,6 +4,10 @@ import { registerOfferLetter } from "./recruit/offerLetter.js";
 import { registerWeather }     from "./misc/weather.js";
 
 export function registerTools(server: McpServer) {
-  registerOfferLetter(server);
-    registerWeather(server);
+    try{
+        registerOfferLetter(server);
+        registerWeather(server);
+    } catch (err) {
+        console.error("Error registering tools:", err);
+    }
 }

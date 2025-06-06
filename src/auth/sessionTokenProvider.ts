@@ -53,8 +53,8 @@ export async function generateSessionToken(accessToken: string): Promise<string>
                       body: JSON.stringify({
                         accessToken: null,
                         refreshToken: null,
-                        orgID,
-                        userName,
+                        orgId: orgID,
+                        userName: userName,
                         portalType: "WORKLIFE"
                       })
                     };

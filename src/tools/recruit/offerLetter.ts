@@ -13,6 +13,7 @@ export function registerOfferLetter(server: McpServer) {
     async ({ candidateId }, context: any) => {
       const transport = context.transport as SSEServerTransport;
       console.log("Transport instance inside handler:", transport);
+      console.log("Session token:", context.sessionToken);
       console.log("Is same as stream.get(id):", streams.get(transport.sessionId) === transport);
 
       console.log("Selected transport sessionId:", transport.sessionId);

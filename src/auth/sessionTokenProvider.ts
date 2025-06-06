@@ -59,6 +59,7 @@ export async function generateSessionToken(accessToken: string): Promise<string>
                       })
                     };
 
+  console.log(JSON.stringify(request));
   const response = await fetch(url, request);
   console.log(response);
 

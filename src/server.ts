@@ -145,9 +145,11 @@ app.get("/", (req, res) => {
     const t = new SSEServerTransport("/messages", res);
     streams.set(t.sessionId, t);
     if (req.sessionToken) {
+        console.log("transportSessionTokenContext is set ",req.sessionToken);
         transportSessionTokenContext.set(t, { sessionToken: req.sessionToken });
     }
     if(req.accessToken) {
+        console.log("transportAccessTokenContext is set ",req.accessToken);
         transportAccessTokenContext.set(t, { accessToken: req.accessToken });
     }
     mcp.connect(t).catch(console.error);

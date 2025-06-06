@@ -11,6 +11,10 @@ export function registerOfferLetter(server: McpServer) {
     { candidateId: z.string() },
     async ({ candidateId }, context: any) => {
       const transport = context.transport as SSEServerTransport;
+      console.log("All transportSessionTokenContext keys:");
+      for (const [key, value] of Array.from(transportSessionTokenContext.entries())) {
+          console.log("→", key.sessionId, value.sessionToken);
+      }
       const sessionTokenCtx = transportSessionTokenContext.get(transport);
       const accessTokenCtx = transportAccessTokenContext.get(transport);
 

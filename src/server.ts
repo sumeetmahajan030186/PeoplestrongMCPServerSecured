@@ -179,13 +179,16 @@ app.post("/messages", async (req, res) => {
     const sessionToken = transportSessionTokenContext.get(t)?.sessionToken;
     const accessToken  = transportAccessTokenContext.get(t)?.accessToken;
     await t.handlePostMessage(req, res, {
-                                          ...req.body.args, // expected tool args
-                                          __meta__: {
-                                            transport: t,
-                                            sessionToken,
-                                            accessToken
-                                          }
-                                        });
+     tool: req.body.tool,
+     args: {
+       ...req.body.args,
+       __meta__: {
+         sessionToken,
+         accessToken,
+         transport: t
+       }
+     }
+   });
 });
 
 const port = Number(process.env.PORT || 3000);

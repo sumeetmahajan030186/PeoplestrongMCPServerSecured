@@ -170,25 +170,24 @@ app.get("/sse", (req, res) => {
 // Tool and chat messages
 app.post("/messages", async (req, res) => {
     console.log("in app.post(/messages) POST");
+  const id = String(req.query.sessionId || req.query.id || req.body.sessionId || req.body.id || "");
+  const t = streams.get(id);
 
-    const id = String(req.query.sessionId || req.query.id || req.body.sessionId || req.body.id || "");
-    const t = streams.get(id);
+  if (!t) return res.status(202).end();
 
-    if (!t) return res.status(202).end();
+  const sessionToken = transportSessionTokenContext.get(t)?.sessionToken;
+  const accessToken  = transportAccessTokenContext.get(t)?.accessToken;
 
-    const sessionToken = transportSessionTokenContext.get(t)?.sessionToken;
-    const accessToken  = transportAccessTokenContext.get(t)?.accessToken;
-    await t.handlePostMessage(req, res, {
-     tool: req.body.tool,
-     args: {
-       ...req.body.args,
-       __meta__: {
-         sessionToken,
-         accessToken,
-         transport: t
-       }
-     }
-   });
+  const { tool, args } = req.body;
+  if (!tool || !args) return res.status(400).send("Invalid tool request");
+
+  await t.handlePostMessage(req, res, {
+    tool,
+    args: {
+      ...args,
+      __meta__: { sessionToken, accessToken, transport: t }
+    }
+  });
 });
 
 const port = Number(process.env.PORT || 3000);

@@ -186,13 +186,7 @@ app.post("/messages", async (req, res) => {
   console.log("sessionToken : ", sessionToken);
   if (!tool || !args) return res.status(400).send("Invalid tool request");
 
-  await t.handlePostMessage(req, res, {
-    tool,
-    args: {
-      ...args,
-      __meta__: { sessionToken, accessToken, transport: t }
-    }
-  });
+  await t.handlePostMessage(req, res, req.body);
 });
 
 const port = Number(process.env.PORT || 3000);

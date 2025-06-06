@@ -40,11 +40,6 @@ export async function generateSessionToken(accessToken: string): Promise<string>
     throw new Error("Required fields (OrgID or preferred_username or tenant_domain) missing in accessToken");
   }
   const url = "https://"+domain+"/api/v1/token/login";
-  console.log("Url:"+ url);
-  console.log("OrgID:",orgID);
-  console.log("UserName:",userName);
-  console.log("Domain:",domain);
-
   const request = {
                       method: "POST",
                       headers: {
@@ -61,7 +56,6 @@ export async function generateSessionToken(accessToken: string): Promise<string>
 
   console.log(JSON.stringify(request));
   const response = await fetch(url, request);
-  console.log(response);
 
   if (!response.ok) {
     throw new Error(`Failed to get session token: ${response.status} ${response.statusText}`);

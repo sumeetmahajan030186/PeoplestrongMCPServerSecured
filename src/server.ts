@@ -14,6 +14,7 @@ declare global {
   namespace Express {
     interface Request {
       sessionToken?: string;
+      accessToken?: string;
     }
   }
 }
@@ -119,6 +120,7 @@ app.use(async(req, res, next) => {
       const sessionToken = await generateSessionToken(accessToken);
       sessionTokenCache.set(accessToken, sessionToken);
       req.sessionToken = sessionToken;
+      req.accessToken = accessToken;
     } catch (err) {
       console.error("Failed to generate session token", err);
       return res.status(500).send("Session initialization failed");
@@ -141,7 +143,8 @@ app.use(async(req, res, next) => {
 });
 
 const streams = new Map<string, SSEServerTransport>();
-export const transportContext = new WeakMap<SSEServerTransport, { sessionToken: string }>();
+export const transportSessionTokenContext = new WeakMap<SSEServerTransport, { sessionToken: string }>();
+export const transportAccessTokenContext = new WeakMap<SSEServerTransport, { accessToken: string }>();
 
 // SSE connection entry
 app.get("/", (req, res) => {
@@ -171,7 +174,10 @@ app.post("/messages", async (req, res) => {
     const t = streams.get(id);
     if (!t) return res.status(202).end();
     if (req.sessionToken) {
-        transportContext.set(t, { sessionToken: req.sessionToken });
+        transportSessionTokenContext.set(t, { sessionToken: req.sessionToken });
+    }
+    if(req.accessToken) {
+        transportAccessTokenContext.set(t, { accessToken: req.accessToken });
     }
     await t.handlePostMessage(req, res, req.body);
 });

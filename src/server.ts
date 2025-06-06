@@ -133,13 +133,6 @@ app.use(async(req, res, next) => {
   }
 
   next();
-//   auth.verifyAccessToken(token)
-//     .then(() => {console.log("validated");next()})
-//     .catch(() => {
-//         console.log("non validated");
-//       res.set("WWW-Authenticate", `Bearer realm=\"OAuth\"`);
-//       return res.status(401).end();
-//     });
 });
 
 const streams = new Map<string, SSEServerTransport>();
@@ -151,6 +144,12 @@ app.get("/", (req, res) => {
     console.log("SSE connection established", req.headers["authorization"] ? "with auth" : "without auth");
     const t = new SSEServerTransport("/messages", res);
     streams.set(t.sessionId, t);
+    if (req.sessionToken) {
+        transportSessionTokenContext.set(t, { sessionToken: req.sessionToken });
+    }
+    if(req.accessToken) {
+        transportAccessTokenContext.set(t, { accessToken: req.accessToken });
+    }
     mcp.connect(t).catch(console.error);
     res.on("close", () => streams.delete(t.sessionId));
 });
@@ -173,12 +172,7 @@ app.post("/messages", async (req, res) => {
     const id = String(req.query.sessionId || req.query.id || req.body.sessionId || req.body.id || "");
     const t = streams.get(id);
     if (!t) return res.status(202).end();
-    if (req.sessionToken) {
-        transportSessionTokenContext.set(t, { sessionToken: req.sessionToken });
-    }
-    if(req.accessToken) {
-        transportAccessTokenContext.set(t, { accessToken: req.accessToken });
-    }
+
     await t.handlePostMessage(req, res, req.body);
 });
 

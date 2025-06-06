@@ -136,8 +136,8 @@ app.use(async(req, res, next) => {
 });
 
 const streams = new Map<string, SSEServerTransport>();
-export const transportSessionTokenContext = new WeakMap<SSEServerTransport, { sessionToken: string }>();
-export const transportAccessTokenContext = new WeakMap<SSEServerTransport, { accessToken: string }>();
+export const transportSessionTokenContext = new Map<SSEServerTransport, { sessionToken: string }>();
+export const transportAccessTokenContext = new Map<SSEServerTransport, { accessToken: string }>();
 
 // SSE connection entry
 app.get("/", (req, res) => {

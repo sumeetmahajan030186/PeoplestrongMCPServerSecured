@@ -136,8 +136,8 @@ app.use(async(req, res, next) => {
 });
 
 export const streams = new Map<string, SSEServerTransport>();
-export const transportSessionTokenContext = new Map<SSEServerTransport, { sessionToken: string }>();
-export const transportAccessTokenContext = new Map<SSEServerTransport, { accessToken: string }>();
+export const transportSessionTokenContext = new Map<string, { sessionToken: string }>();
+export const transportAccessTokenContext = new Map<string, { accessToken: string }>();
 
 // SSE connection entry
 app.get("/", (req, res) => {
@@ -146,11 +146,11 @@ app.get("/", (req, res) => {
     streams.set(t.sessionId, t);
     if (req.sessionToken) {
         console.log("transportSessionTokenContext is set ",req.sessionToken);
-        transportSessionTokenContext.set(t, { sessionToken: req.sessionToken });
+        transportSessionTokenContext.set(t.sessionId, { sessionToken: req.sessionToken });
     }
     if(req.accessToken) {
         console.log("transportAccessTokenContext is set ",req.accessToken);
-        transportAccessTokenContext.set(t, { accessToken: req.accessToken });
+        transportAccessTokenContext.set(t.sessionId, { accessToken: req.accessToken });
     }
     mcp.connect(t).catch(console.error);
     res.on("close", () => streams.delete(t.sessionId));
@@ -175,8 +175,8 @@ app.post("/messages", async (req, res) => {
 
   if (!t) return res.status(202).end();
 
-  const sessionToken = transportSessionTokenContext.get(t)?.sessionToken;
-  const accessToken  = transportAccessTokenContext.get(t)?.accessToken;
+  const sessionToken = transportSessionTokenContext.get(id)?.sessionToken;
+  const accessToken  = transportAccessTokenContext.get(id)?.accessToken;
 
   console.log("Request body : ", req.body);
   console.log("accessToken : ", accessToken);

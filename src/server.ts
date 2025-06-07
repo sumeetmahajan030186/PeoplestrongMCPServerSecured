@@ -190,7 +190,12 @@ app.post("/messages", async (req, res) => {
          params: {
            name: message.params.name,
            arguments: message.params.arguments || {},
-           __extra__: { sessionToken, accessToken, transport: t }
+           __extra__: {
+               ...message.params.__extra__,
+               sessionToken,
+               accessToken,
+               transport: t
+           }
          },
          jsonrpc: message.jsonrpc,
          id: message.id

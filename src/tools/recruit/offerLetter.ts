@@ -7,15 +7,10 @@ export function registerOfferLetter(server: McpServer) {
   server.tool(
     "createOfferLetter",
     "Generate offer letter for a candidate",
-    { candidateId: z.string() },
-    async ({ candidateId }, context: any) => {
-    const sessionToken = context.sessionToken ?? "[missing]";
-    const accessToken = context.accessToken ?? "[missing]";
-    const transport = context.transport;
+    { candidateId: z.string(), __meta__: z.any().optional() },
+    async ({ candidateId }, __meta__) => {
 
-    console.log("Session Token:", sessionToken);
-    console.log("Access Token:", accessToken);
-    console.log("Transport:", transport);
+    console.log("meta:", __meta__);
 
       return {
         content: [

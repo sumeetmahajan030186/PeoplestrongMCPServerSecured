@@ -5,8 +5,8 @@ export function registerWeather(server: McpServer) {
   server.tool(
     "getWeather",
     "Get current weather by city name",
-    { city: z.string() },
-    async ({ city }) => {
+    { city: z.string(), __meta__: z.any().optional() },
+    async ({ city, __meta__ }) => {
       const res = await fetch(`https://wttr.in/${encodeURIComponent(city)}?format=j1`);
       if (!res.ok) throw new Error(`Weather API responded with ${res.status}`);
 

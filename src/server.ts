@@ -185,15 +185,19 @@ app.post("/messages", async (req, res) => {
 
     // Handle JSON-RPC tool call
     if (message?.method === "tools/call" && message.params?.name) {
-      message = {
-        tool: message.params.name,
-        args: {
-          ...(message.params.arguments || {}),
-          __meta__: { sessionToken, accessToken, transport: t }
-        }
-      };
+       message = {
+         method: "tools/call",
+         params: {
+           name: message.params.name,
+           arguments: message.params.arguments || {},
+           __extra__: { sessionToken, accessToken, transport: t }
+         },
+         jsonrpc: message.jsonrpc,
+         id: message.id
+       };
     }
 
+console.log(message);
 try {
   await t.handlePostMessage(req, res, message);
 } catch (err) {

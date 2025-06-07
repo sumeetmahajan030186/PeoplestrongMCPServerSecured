@@ -194,7 +194,12 @@ app.post("/messages", async (req, res) => {
       };
     }
 
-    await t.handlePostMessage(req, res, message);
+try {
+  await t.handlePostMessage(req, res, message);
+} catch (err) {
+  console.error("Tool call failed:", err);
+  res.status(500).send("Tool call failed");
+}
 });
 
 const port = Number(process.env.PORT || 3000);

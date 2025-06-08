@@ -12,6 +12,11 @@ export class OfferLetter extends Tool {
       "Generate offer letter for a candidate",
       { candidateId: z.string() },
       async ({ candidateId }, extras) => {
+
+        const sessionId = extra.sessionId;
+        console.log(sessionId);
+        if (!sessionId) throw new Error("Missing sessionId in tool context");
+
         const sessionToken = (extras as any)?.req?.sessionToken;
         console.log("SessionToken inside tool:", sessionToken);
         return {

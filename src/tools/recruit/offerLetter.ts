@@ -13,7 +13,7 @@ export class OfferLetter extends Tool {
       { candidateId: z.string() },
       async ({ candidateId }, extras) => {
 
-        const sessionId = extra.sessionId;
+        const sessionId = extras.sessionId;
         console.log(sessionId);
         if (!sessionId) throw new Error("Missing sessionId in tool context");
 

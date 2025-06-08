@@ -1,27 +1,61 @@
 import fetch from "node-fetch";
+import jwt from "jsonwebtoken";
 
 interface TokenLoginResponse {
   token: string;
   // You can add other fields if needed
 }
 
+interface AccessTokenPayload {
+  OrgID?: string;
+  preferred_username?: string;
+  tenant_domain?: string;
+  // Add more fields as required
+}
+
 /**
- * Calls external API to generate session token using accessToken.
- * @param accessToken JWT access token
- * @returns sessionToken as a string
+ * Decode JWT access token to extract payload information
+ * @param token JWT token string
+ * @returns Decoded payload object
+ */
+function decodeAccessToken(token: string): AccessTokenPayload {
+  const decoded = jwt.decode(token);
+  if (!decoded || typeof decoded !== "object") {
+    throw new Error("Invalid access token payload");
+  }
+
+  return decoded as AccessTokenPayload;
+}
+
+/**
+ * Generate session token by calling external API using decoded JWT info.
  */
 export async function generateSessionToken(accessToken: string): Promise<string> {
-  const response = await fetch("https://s2demo.uat.peoplestrong.com/api/v1/token/login", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      accessToken,
-      refreshToken: null,
-      portalType: "WORKLIFE"
-    })
-  });
+  const decoded = decodeAccessToken(accessToken);
+  const orgID = decoded.OrgID;
+  const userName = decoded.preferred_username;
+  const domain = decoded.tenant_domain;
+
+  if (!orgID || !userName || !domain) {
+    throw new Error("Required fields (OrgID or preferred_username or tenant_domain) missing in accessToken");
+  }
+  const url = "https://"+domain+"/api/v1/token/login";
+  const request = {
+                      method: "POST",
+                      headers: {
+                        "Content-Type": "application/json"
+                      },
+                      body: JSON.stringify({
+                        accessToken: null,
+                        refreshToken: null,
+                        orgId: orgID,
+                        userName: userName,
+                        portalType: "WORKLIFE"
+                      })
+                    };
+
+  console.log(JSON.stringify(request));
+  const response = await fetch(url, request);
 
   if (!response.ok) {
     throw new Error(`Failed to get session token: ${response.status} ${response.statusText}`);
@@ -30,7 +64,7 @@ export async function generateSessionToken(accessToken: string): Promise<string>
   const data = (await response.json()) as TokenLoginResponse;
 
   if (!data.token) {
-    throw new Error("No sessionToken in response");
+    throw new Error("No session token found in response");
   }
 
   return data.token;

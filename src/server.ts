@@ -10,6 +10,21 @@ import { registerTools } from "./tools/tools.js";
 import { makeKeycloakProvider } from "./auth/keycloakProvider.js";
 import { generateSessionToken } from "./auth/sessionTokenProvider.js";
 
+
+// Node’s built-in fs:
+import { readFileSync } from "fs";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// 1) Load your system prompt from an external file at startup:
+const promptPath = join(__dirname, "prompts", "system.txt");
+const systemPrompt = readFileSync(promptPath, "utf-8");
+
+
+// 2) Validate the system prompt using zod
 declare global {
   namespace Express {
     interface Request {
@@ -101,7 +116,10 @@ app.get('/.well-known/oauth-authorization-server', (_req, res) => {
 const mcp = new McpServer({
   name: "PeoplestrongMCP",
   version: "2.0.0",
-  authProvider: auth
+  authProvider: auth,
+  prompt: {
+    system: systemPrompt
+  }
 });
 
 // ----- JWT middleware -----

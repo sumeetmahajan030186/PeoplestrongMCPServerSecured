@@ -27,6 +27,15 @@ function decodeAccessToken(token: string): AccessTokenPayload {
   return decoded as AccessTokenPayload;
 }
 
+// Public helper: given a raw Keycloak JWT, return tenant_domain
+export function getTenantDomainFromJwt(token: string): string {
+  const { tenant_domain } = decodeAccessToken(token);
+  if (!tenant_domain) {
+    throw new Error("No tenant_domain found in accessToken");
+  }
+  return tenant_domain;
+}
+
 /**
  * Generate session token by calling external API using decoded JWT info.
  */

@@ -12,6 +12,8 @@ FROM node:20-alpine
 WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=build /app/dist ./dist
+#COPY src/prompts ./dist/prompts
+COPY --from=build /app/src/prompts ./dist/prompts
 COPY package*.json ./
 RUN npm ci --omit=dev
 EXPOSE 8000

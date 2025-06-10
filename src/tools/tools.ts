@@ -22,11 +22,6 @@ export function registerTools(server: McpServer) {
         registerOfferLetter(server);
         registerWeather(server);
 
-        // Register our new candidate endpoints:
-        //registerCandidateTools(server)
-        registerJobListTool(server);
-        registerJobDescriptionTool(server);
-
         registerListHolidaysTool(server);
         registerGetLeaveBalanceTool(server);
         registerGetAttendanceStatusTool(server);

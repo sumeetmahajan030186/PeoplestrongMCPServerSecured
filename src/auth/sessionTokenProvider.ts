@@ -36,6 +36,29 @@ export function getTenantDomainFromJwt(token: string): string {
   return tenant_domain;
 }
 
+export async function isValidSessionToken(sessionToken: string, accessToken: string): Promise<boolean> {
+  if (!sessionToken || !accessToken) {
+    return false;
+  }
+
+  const decoded = decodeAccessToken(accessToken);
+  const domain = decoded.tenant_domain;
+  try {
+    const url = `https://${domain}/api/v1/token/sessionValidate`;
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "SessionToken": sessionToken,
+        "Content-Type": "application/json"
+      }
+    });
+
+    return response.ok;
+  } catch (error) {
+    console.error("Session token validation failed:", error);
+    return false;
+  }
+}
 /**
  * Generate session token by calling external API using decoded JWT info.
  */

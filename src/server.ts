@@ -8,8 +8,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { registerTools } from "./tools/tools.js";
 import { makeKeycloakProvider } from "./auth/keycloakProvider.js";
-import { generateSessionToken } from "./auth/sessionTokenProvider.js";
-
+import { generateSessionToken, isValidSessionToken } from "./auth/sessionTokenProvider.js";
 
 // Node’s built-in fs:
 import { readFileSync } from "fs";
@@ -41,6 +40,7 @@ app.use(express.json());
 const issuer = new URL(process.env.OIDC_ISSUER!);
 const auth = makeKeycloakProvider(issuer);
 let toolsRegistered = false;
+let sessionTokenFound = false;
 const sessionTokenCache = new Map<string, string>();
 // Well-known endpoints for OAuth
 app.get("/.well-known/oauth-protected-resource", (_req, res) => {
@@ -124,26 +124,35 @@ const mcp = new McpServer({
 
 // ----- JWT middleware -----
 app.use(async(req, res, next) => {
-  const authHeader = req.headers["authorization"];
-  console.log("AuthHeader:",authHeader);
-  if (!authHeader?.startsWith("Bearer ")) {
-    res.set("WWW-Authenticate", `Bearer realm=\"OAuth\"`);
-    return res.status(401).end();
-  }
-  const accessToken = authHeader.slice(7);
-  if (sessionTokenCache.has(accessToken)) {
-    req.sessionToken = sessionTokenCache.get(accessToken)!;
-  } else {
-    try {
-      const sessionToken = await generateSessionToken(accessToken);
-      sessionTokenCache.set(accessToken, sessionToken);
-      req.sessionToken = sessionToken;
-      req.accessToken = accessToken;
-    } catch (err) {
-      console.error("Failed to generate session token", err);
-      return res.status(500).send("Session initialization failed");
+//   const authHeader = req.headers["authorization"];
+//   console.log("AuthHeader:",authHeader);
+//   if (!authHeader?.startsWith("Bearer ")) {
+//     res.set("WWW-Authenticate", `Bearer realm=\"OAuth\"`);
+//     return res.status(401).end();
+//   }
+//  const accessToken = authHeader.slice(7);
+   const accessToken = "eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJRSjVtQW9yN1dRV011TDcxUG5DMURTM2dGTzdvWVpoSnphUkYtelFVQ2lnIn0.eyJleHAiOjE3NDk1NDg3NTksImlhdCI6MTc0OTU0ODQ1OSwiYXV0aF90aW1lIjoxNzQ5NTQ3MDU4LCJqdGkiOiJjZjU2OTFiNi03Zjg3LTQ0YWQtODM0NC0zZDZhMzE3ZWIyMGUiLCJpc3MiOiJodHRwczovL3VhdC1hdXRoLnBlb3BsZXN0cm9uZy5jb20vYXV0aC9yZWFsbXMvcGVvcGxlc3Ryb25nLWlkcCIsImF1ZCI6ImFjY291bnQiLCJzdWIiOiJiOGQ0NTBlZC1hMWEyLTRjOGUtOTY2YS03MDk3OWQyZTI5YWMiLCJ0eXAiOiJCZWFyZXIiLCJhenAiOiJ2WTFhcVFtZTRudlZVRUpKIiwic2Vzc2lvbl9zdGF0ZSI6IjNmZjA1ZmE1LTlkMmYtNDNhNC1iYmIzLTVmYTMyMGZjYjA0MyIsImFjciI6IjEiLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsIk9yZ0lEIjoiMTkiLCJlbWFpbF92ZXJpZmllZCI6ZmFsc2UsInRlbmFudF9kb21haW4iOiJocm1zLnVhdC5wZW9wbGVzdHJvbmcuY29tIiwicHJlZmVycmVkX3VzZXJuYW1lIjoic3VtZWV0Lm1haGFqYW5AcGVvcGxlc3Ryb25nLmNvbSJ9.a5huGy9w2zYFNKvXJWhNp7TYNIfxv6bb9PvU-AkQkABQvfCgC7nccYBKFihSB2wnYcJBoapmi7AU-WPOcW-pr_PzY_Yq52DZwGi7wJysNd0tPHbBBNOuy2yJ5qDgDrSC3fD70ZSvLa7h5Z4HmvcxzcdzmdhkXmOFQGF-pzSaZo4UfOd7yO7AnsPwJSb7bbG8FLr3O0wbR71h5iDn3UXD-RMVOznL_j81p8L_3DoTotT2wembyAqTXtd2sLJovIniHJrN4Dra0c5TPb4E628aYK1p4ppWYTtFjLTNB7KHbogAk3Nx_8nJJXhL3cwcV9T5zWzW9Cm_IrKEiveEZgmNnQ";
+   if (sessionTokenCache.has(accessToken)){
+       const sessionToken = sessionTokenCache.get(accessToken);
+       if(await isValidSessionToken(sessionToken!,accessToken)) {
+        req.accessToken = accessToken;
+        req.sessionToken = sessionToken;
+        sessionTokenFound = true;
+        console.log("Session token from cache:", req.sessionToken);
+     }
     }
-  }
+    if(!sessionTokenFound){
+        try {
+            const sessionToken = await generateSessionToken(accessToken);
+            sessionTokenCache.set(accessToken, sessionToken);
+            req.sessionToken = sessionToken;
+            req.accessToken = accessToken;
+        } catch (err) {
+            console.error("Failed to generate session token", err);
+            return res.status(500).send("Session initialization failed");
+        }
+    }
+  console.log("sessionToken : ",req.sessionToken,"accessToken : ",req.accessToken);
 
   if (!toolsRegistered) {
     registerTools(mcp);

@@ -233,6 +233,95 @@ export function registerCandidateTools(server: McpServer) {
             };
         }
     );
+
+        // 6) Parse Resume for a registered candidate
+    server.tool(
+        "parseResume",
+        "Parse Resume for a registered user",
+        {
+            file: z.string(), 
+            userID: z.number()
+        },
+        async (params, extra: any) => {
+            // 1) Retrieve transport context
+            const accessToken = fetchAccessToken(extra);
+
+            // 2) Decode tenant domain from raw access token
+            let tenantDomain: string = fetchDomain(accessToken);
+            const url = new URL(
+                `https://${tenantDomain}/api/cp/rest/altone/interview-agent/parseResume`
+            );
+            const formData = new FormData();
+            formData.append('file', params.file);
+            formData.append('userID', params.userID.toString());
+
+            const resp = await fetch(url.toString(), {
+                method: "POST",
+                headers: {
+                    Accept: "application/json, text/plain, */*",
+                    Authorization: `Bearer ${accessToken}`
+                },
+                body: formData
+            });
+            if (!resp.ok) throw await buildError(resp, "parseResume");
+            // 5) Parse JSON response
+            const fullJson = await resp.json() as {
+                response: any;
+                responseDate: any;
+                messageCode?: { code: number; messages: string };
+                appUpdateResponseTO : any;
+                totalRecords: any;
+                responseMap: any;
+            };
+            // 6) Extract the payload
+            const result = fullJson.response;
+            return {
+                content: [{ type: "text", text: `Resume parsed Successfully` }],
+                structuredContent: result
+            };
+        }
+    );
+
+        // 7) Get List of countries
+    server.tool(
+        "countryList",
+        "Get list of country for the organization",
+        {},
+        async (params, extra: any) => {
+            // 1) Retrieve transport context
+            const accessToken = fetchAccessToken(extra);
+
+            // 2) Decode tenant domain from raw access token
+            let tenantDomain: string = fetchDomain(accessToken);
+            const url = new URL(
+                `https://${tenantDomain}/api/cp/rest/altone/cp/country/list/`
+            );
+
+            const resp = await fetch(url.toString(), {
+                method: "GET",
+                headers: {
+                    Accept: "application/json, text/plain, */*",
+                    Authorization: `Bearer ${accessToken}`
+                }
+            });
+
+            if (!resp.ok) {
+                const text = await resp.text();
+                throw new Error(`getCountryList failed (${resp.status}): ${text}`);
+            }
+            // 5) Parse JSON response
+            const fullJson = await resp.json() as {
+                response: any;
+                messageCode?: { code: number; messages: string };
+            };
+            // 6) Extract the payload
+            const result = fullJson.response;
+            return {
+                content: [{ type: "text", text: `fetched Country List` }],
+                structuredContent: result
+            };
+        }
+    );
 }
 
 /**

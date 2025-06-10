@@ -23,7 +23,7 @@ export function registerTools(server: McpServer) {
         registerWeather(server);
 
         // Register our new candidate endpoints:
-        registerCandidateTools(server)
+        //registerCandidateTools(server)
         registerJobListTool(server);
         registerJobDescriptionTool(server);
 

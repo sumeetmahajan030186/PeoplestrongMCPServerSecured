@@ -172,11 +172,11 @@ app.get("/", (req, res) => {
     const t = new SSEServerTransport("/messages", res);
     streams.set(t.sessionId, t);
     if (req.sessionToken) {
-        console.log("transportSessionTokenContext is set ",req.sessionToken);
+        //console.log("transportSessionTokenContext is set ",req.sessionToken);
         transportSessionTokenContext.set(t.sessionId, { sessionToken: req.sessionToken });
     }
     if(req.accessToken) {
-        console.log("transportAccessTokenContext is set ",req.accessToken);
+        //console.log("transportAccessTokenContext is set ",req.accessToken);
         transportAccessTokenContext.set(t.sessionId, { accessToken: req.accessToken });
     }
     mcp.connect(t).catch(console.error);
@@ -208,30 +208,9 @@ app.post("/messages", async (req, res) => {
   console.log("Request body : ", req.body);
   console.log("accessToken : ", accessToken);
   console.log("sessionToken : ", sessionToken);
-    let message = req.body;
 
-    // Handle JSON-RPC tool call
-    if (message?.method === "tools/call" && message.params?.name) {
-       message = {
-         method: "tools/call",
-         params: {
-           name: message.params.name,
-           arguments: message.params.arguments || {},
-           __extra__: {
-               ...message.params.__extra__,
-               sessionToken,
-               accessToken,
-               transport: t
-           }
-         },
-         jsonrpc: message.jsonrpc,
-         id: message.id
-       };
-    }
-
-console.log(message);
 try {
-  await t.handlePostMessage(req, res, message);
+  await t.handlePostMessage(req, res, req.body);
 } catch (err) {
   console.error("Tool call failed:", err);
   res.status(500).send("Tool call failed");

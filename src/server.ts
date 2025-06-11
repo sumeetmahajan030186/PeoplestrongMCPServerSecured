@@ -43,9 +43,11 @@ let toolsRegistered = false;
 let sessionTokenFound = false;
 const sessionTokenCache = new Map<string, string>();
 
-// Helper function to add timestamp to logs
+// Helper function to add timestamp to logs in IST
 const logWithTimestamp = (...args: any[]) => {
-  const timestamp = new Date().toISOString();
+  const now = new Date();
+  const istTime = new Date(now.getTime() + (5.5 * 60 * 60 * 1000)); // Add 5.5 hours for IST
+  const timestamp = istTime.toISOString().replace('T', ' ').replace('Z', ' IST');
   console.log(`[${timestamp}]`, ...args);
 };
 

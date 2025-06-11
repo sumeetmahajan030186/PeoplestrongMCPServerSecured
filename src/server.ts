@@ -60,9 +60,9 @@ app.get("/.well-known/oauth-protected-resource", (_req, res) => {
 });
 
 app.get('/.well-known/oauth-authorization-server', (_req, res) => {
-   //res.json({"issuer":"https://atlassian-remote-mcp-production.atlassian-remote-mcp-server-production.workers.dev","authorization_endpoint":"https://mcp.atlassian.com/v1/authorize","token_endpoint":"https://atlassian-remote-mcp-production.atlassian-remote-mcp-server-production.workers.dev/v1/token","registration_endpoint":"https://atlassian-remote-mcp-production.atlassian-remote-mcp-server-production.workers.dev/v1/register","response_types_supported":["code"],"response_modes_supported":["query"],"grant_types_supported":["authorization_code","refresh_token"],"token_endpoint_auth_methods_supported":["client_secret_basic","client_secret_post","none"],"revocation_endpoint":"https://atlassian-remote-mcp-production.atlassian-remote-mcp-server-production.workers.dev/v1/token","code_challenge_methods_supported":["plain","S256"]});
+   res.json({"issuer":"https://atlassian-remote-mcp-production.atlassian-remote-mcp-server-production.workers.dev","authorization_endpoint":"https://mcp.atlassian.com/v1/authorize","token_endpoint":"https://atlassian-remote-mcp-production.atlassian-remote-mcp-server-production.workers.dev/v1/token","registration_endpoint":"https://atlassian-remote-mcp-production.atlassian-remote-mcp-server-production.workers.dev/v1/register","response_types_supported":["code"],"response_modes_supported":["query"],"grant_types_supported":["authorization_code","refresh_token"],"token_endpoint_auth_methods_supported":["client_secret_basic","client_secret_post","none"],"revocation_endpoint":"https://atlassian-remote-mcp-production.atlassian-remote-mcp-server-production.workers.dev/v1/token","code_challenge_methods_supported":["plain","S256"]});
 
-  res.json({
+  /*res.json({
     issuer:                      issuer,
     authorization_endpoint:      `${issuer}/protocol/openid-connect/auth`,
     token_endpoint:              `${issuer}/protocol/openid-connect/token`,
@@ -119,7 +119,7 @@ app.get('/.well-known/oauth-authorization-server', (_req, res) => {
     require_request_uri_registration:     true,
     code_challenge_methods_supported:     ['plain','S256'],
     tls_client_certificate_bound_access_tokens: true,
-  });
+  });*/
 });
 
 const mcp = new McpServer({

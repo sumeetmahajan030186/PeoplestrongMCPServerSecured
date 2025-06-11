@@ -42,6 +42,13 @@ const auth = makeKeycloakProvider(issuer);
 let toolsRegistered = false;
 let sessionTokenFound = false;
 const sessionTokenCache = new Map<string, string>();
+
+// Helper function to add timestamp to logs
+const logWithTimestamp = (...args: any[]) => {
+  const timestamp = new Date().toISOString();
+  console.log(`[${timestamp}]`, ...args);
+};
+
 // Well-known endpoints for OAuth
 app.get("/.well-known/oauth-protected-resource1", (_req, res) => {
   res.json({
@@ -125,7 +132,7 @@ const mcp = new McpServer({
 // ----- JWT middleware -----
 app.use(async(req, res, next) => {
 //   const authHeader = req.headers["authorization"];
-//   console.log("AuthHeader:",authHeader);
+//   logWithTimestamp("AuthHeader:",authHeader);
 //   if (!authHeader?.startsWith("Bearer ")) {
 //     res.set("WWW-Authenticate", `Bearer realm=\"OAuth\"`);
 //     return res.status(401).end();
@@ -138,7 +145,7 @@ app.use(async(req, res, next) => {
         req.accessToken = accessToken;
         req.sessionToken = sessionToken;
         sessionTokenFound = true;
-        console.log("Session token from cache:", req.sessionToken);
+        logWithTimestamp("Session token from cache:", req.sessionToken);
      }
     }
     if(!sessionTokenFound){
@@ -152,7 +159,7 @@ app.use(async(req, res, next) => {
             return res.status(500).send("Session initialization failed");
         }
     }
-  console.log("sessionToken : ",req.sessionToken,"accessToken : ",req.accessToken);
+  logWithTimestamp("sessionToken : ",req.sessionToken,"accessToken : ",req.accessToken);
 
   if (!toolsRegistered) {
     registerTools(mcp);
@@ -168,15 +175,15 @@ export const transportAccessTokenContext = new Map<string, { accessToken: string
 
 // SSE connection entry
 app.get("/", (req, res) => {
-    console.log("SSE connection established", req.headers["authorization"] ? "with auth" : "without auth");
+    logWithTimestamp("SSE connection established", req.headers["authorization"] ? "with auth" : "without auth");
     const t = new SSEServerTransport("/messages", res);
     streams.set(t.sessionId, t);
     if (req.sessionToken) {
-        //console.log("transportSessionTokenContext is set ",req.sessionToken);
+        //logWithTimestamp("transportSessionTokenContext is set ",req.sessionToken);
         transportSessionTokenContext.set(t.sessionId, { sessionToken: req.sessionToken });
     }
     if(req.accessToken) {
-        //console.log("transportAccessTokenContext is set ",req.accessToken);
+        //logWithTimestamp("transportAccessTokenContext is set ",req.accessToken);
         transportAccessTokenContext.set(t.sessionId, { accessToken: req.accessToken });
     }
     mcp.connect(t).catch(console.error);
@@ -185,7 +192,7 @@ app.get("/", (req, res) => {
 
 // Session reconnect endpoint (optional)
 app.get("/sse", (req, res) => {
-    console.log("in app.get(/sse) GET");
+    logWithTimestamp("in app.get(/sse) GET");
     const id = String(req.query.id || "");
     if (!id) return res.status(400).send("session id required");
     const t = new SSEServerTransport("/messages", res);
@@ -196,7 +203,7 @@ app.get("/sse", (req, res) => {
 
 // Tool and chat messages
 app.post("/messages", async (req, res) => {
-    console.log("in app.post(/messages) POST");
+    logWithTimestamp("in app.post(/messages) POST");
   const id = String(req.query.sessionId || req.query.id || req.body.sessionId || req.body.id || "");
   const t = streams.get(id);
 
@@ -205,9 +212,9 @@ app.post("/messages", async (req, res) => {
   const sessionToken = transportSessionTokenContext.get(id)?.sessionToken;
   const accessToken  = transportAccessTokenContext.get(id)?.accessToken;
 
-  console.log("Request body : ", req.body);
-  console.log("accessToken : ", accessToken);
-  console.log("sessionToken : ", sessionToken);
+  logWithTimestamp("Request body : ", req.body);
+  logWithTimestamp("accessToken : ", accessToken);
+  logWithTimestamp("sessionToken : ", sessionToken);
 
 try {
   await t.handlePostMessage(req, res, req.body);
@@ -218,4 +225,4 @@ try {
 });
 
 const port = Number(process.env.PORT || 3000);
-app.listen(port, "0.0.0.0", () => console.log(`✅ SSE MCP server (OAuth) on port ${port}`));
+app.listen(port, "0.0.0.0", () => logWithTimestamp(`✅ SSE MCP server (OAuth) on port ${port}`));

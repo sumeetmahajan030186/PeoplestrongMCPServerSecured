@@ -22,21 +22,21 @@ export function registerTools(server: McpServer) {
         registerOfferLetter(server);
         registerWeather(server);
 
-//         registerListHolidaysTool(server);
-//         registerGetLeaveBalanceTool(server);
-//         registerGetAttendanceStatusTool(server);
-//         registerSubmitAttendanceRegularizationTool(server);
-//         registerCourseList(server);
-//         registerCatalogue(server);
-//         registerCourseEnroll(server);
-//         registerMyGoalList(server);
-//         registerSaveCheckIn(server);
-//         registerGetMilestoneList(server);
-//         // Register our new candidate endpoints:
-//         registerCandidateTools(server)
-//         registerJobListTool(server);
-//         registerJobDescriptionTool(server);
-//         registerCreateGoal(server);
+        registerListHolidaysTool(server);
+        registerGetLeaveBalanceTool(server);
+        registerGetAttendanceStatusTool(server);
+        registerSubmitAttendanceRegularizationTool(server);
+        registerCourseList(server);
+        registerCatalogue(server);
+        registerCourseEnroll(server);
+        registerMyGoalList(server);
+        registerSaveCheckIn(server);
+        registerGetMilestoneList(server);
+        // Register our new candidate endpoints:
+        registerCandidateTools(server)
+        registerJobListTool(server);
+        registerJobDescriptionTool(server);
+        registerCreateGoal(server);
    } catch (err) {
           console.error("Error registering tools:", err);
       }

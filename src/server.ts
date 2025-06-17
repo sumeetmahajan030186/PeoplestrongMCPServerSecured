@@ -135,10 +135,16 @@ const mcp = new McpServer({
 app.use(async(req, res, next) => {
    const authHeader = req.headers["authorization"];
    logWithTimestamp("AuthHeader:",authHeader);
-   if (!authHeader?.startsWith("Bearer ")) {
-     res.set("WWW-Authenticate", `Bearer realm=\"OAuth\"`);
-     return res.status(401).end();
-   }
+if (!authHeader?.startsWith("Bearer ")) {
+  res.status(401)
+    .set("WWW-Authenticate", `Bearer realm="example", error="invalid_token", error_description="The access token is invalid or has expired"`)
+    .type("application/json")
+    .json({
+      error: "invalid_token",
+      error_description: "The access token is invalid or has expired"
+    });
+  return;
+}
   const accessToken = authHeader.slice(7);
 //   const accessToken = "eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJRSjVtQW9yN1dRV011TDcxUG5DMURTM2dGTzdvWVpoSnphUkYtelFVQ2lnIn0.eyJleHAiOjE3NDk1NDg3NTksImlhdCI6MTc0OTU0ODQ1OSwiYXV0aF90aW1lIjoxNzQ5NTQ3MDU4LCJqdGkiOiJjZjU2OTFiNi03Zjg3LTQ0YWQtODM0NC0zZDZhMzE3ZWIyMGUiLCJpc3MiOiJodHRwczovL3VhdC1hdXRoLnBlb3BsZXN0cm9uZy5jb20vYXV0aC9yZWFsbXMvcGVvcGxlc3Ryb25nLWlkcCIsImF1ZCI6ImFjY291bnQiLCJzdWIiOiJiOGQ0NTBlZC1hMWEyLTRjOGUtOTY2YS03MDk3OWQyZTI5YWMiLCJ0eXAiOiJCZWFyZXIiLCJhenAiOiJ2WTFhcVFtZTRudlZVRUpKIiwic2Vzc2lvbl9zdGF0ZSI6IjNmZjA1ZmE1LTlkMmYtNDNhNC1iYmIzLTVmYTMyMGZjYjA0MyIsImFjciI6IjEiLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSIsIk9yZ0lEIjoiMTkiLCJlbWFpbF92ZXJpZmllZCI6ZmFsc2UsInRlbmFudF9kb21haW4iOiJocm1zLnVhdC5wZW9wbGVzdHJvbmcuY29tIiwicHJlZmVycmVkX3VzZXJuYW1lIjoic3VtZWV0Lm1haGFqYW5AcGVvcGxlc3Ryb25nLmNvbSJ9.a5huGy9w2zYFNKvXJWhNp7TYNIfxv6bb9PvU-AkQkABQvfCgC7nccYBKFihSB2wnYcJBoapmi7AU-WPOcW-pr_PzY_Yq52DZwGi7wJysNd0tPHbBBNOuy2yJ5qDgDrSC3fD70ZSvLa7h5Z4HmvcxzcdzmdhkXmOFQGF-pzSaZo4UfOd7yO7AnsPwJSb7bbG8FLr3O0wbR71h5iDn3UXD-RMVOznL_j81p8L_3DoTotT2wembyAqTXtd2sLJovIniHJrN4Dra0c5TPb4E628aYK1p4ppWYTtFjLTNB7KHbogAk3Nx_8nJJXhL3cwcV9T5zWzW9Cm_IrKEiveEZgmNnQ";
    if (sessionTokenCache.has(accessToken)){

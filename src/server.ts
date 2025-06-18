@@ -55,7 +55,7 @@ const logWithTimestamp = (...args: any[]) => {
 app.get("/.well-known/oauth-protected-resource", (_req, res) => {
   res.json({
     resource: process.env.PUBLIC_BASE_URL,
-    authorization_servers: [issuer.href]
+    authorization_servers: ["https://peoplestrongmcpserversecured.onrender.com"]
   });
 });
 

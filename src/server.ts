@@ -53,6 +53,25 @@ const logWithTimestamp = (...args: any[]) => {
   const timestamp = istTime.toISOString().replace('T', ' ').replace('Z', ' IST');
   console.log(`[${timestamp}]`, ...args);
 };
+app.get("/clients-registrations/openid-connect", (_req, res) => {
+    res.json({
+               "redirect_uris": [
+                 "http://127.0.0.1:6274/oauth/callback/debug"
+               ],
+               "token_endpoint_auth_method": "none",
+               "grant_types": [
+                 "authorization_code",
+                 "refresh_token"
+               ],
+               "response_types": [
+                 "code"
+               ],
+               "client_name": "MCP Inspector",
+               "client_uri": "https://github.com/modelcontextprotocol/inspector",
+               "client_id": "VY1aqQme4nvVUEJJ",
+               "client_id_issued_at": 1750337245
+             });
+});
 
 // Well-known endpoints for OAuth
 app.get("/.well-known/oauth-protected-resource", (_req, res) => {
@@ -98,7 +117,7 @@ app.get('/.well-known/oauth-authorization-server', (_req, res) => {
       'RS256','HS384','ES512','PS256','PS512','RS512','none'
     ],
     response_modes_supported: ['query','fragment','form_post'],
-    registration_endpoint:       `${issuer}/clients-registrations/openid-connect`,
+    registration_endpoint:       `https://peoplestrongmcpserversecured.onrender.com/clients-registrations/openid-connect`,
     token_endpoint_auth_methods_supported: [
       'private_key_jwt','client_secret_basic','client_secret_post',
       'tls_client_auth','client_secret_jwt'

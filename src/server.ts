@@ -9,6 +9,7 @@ import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { registerTools } from "./tools/tools.js";
 import { makeKeycloakProvider } from "./auth/keycloakProvider.js";
 import { generateSessionToken, isValidSessionToken } from "./auth/sessionTokenProvider.js";
+import cors from "cors";
 
 // Node’s built-in fs:
 import { readFileSync } from "fs";
@@ -34,7 +35,9 @@ declare global {
 }
 
 const app = express();
+app.use(cors());
 app.use(express.json());
+app.options("*", cors());
 
 // ----- OAuth provider setup -----
 const issuer = new URL(process.env.OIDC_ISSUER!);

@@ -37,7 +37,7 @@ declare global {
 const app = express();
 app.use(cors());
 app.use(express.json());
-app.options("*", cors());
+//app.options("*", cors());
 
 // ----- OAuth provider setup -----
 const issuer = new URL(process.env.OIDC_ISSUER!);

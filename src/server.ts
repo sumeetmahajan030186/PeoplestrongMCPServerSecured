@@ -68,7 +68,7 @@ app.post("/clients-registrations/openid-connect", (_req, res) => {
                ],
                "client_name": "MCP Inspector",
                "client_uri": "https://github.com/modelcontextprotocol/inspector",
-               "client_id": "VY1aqQme4nvVUEJJ",
+               "client_id": "vY1aqQme4nvVUEJJ",
                "client_id_issued_at": 1750337245
              });
 });

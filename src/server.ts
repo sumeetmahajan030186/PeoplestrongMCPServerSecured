@@ -54,7 +54,7 @@ const logWithTimestamp = (...args: any[]) => {
   console.log(`[${timestamp}]`, ...args);
 };
 app.post("/clients-registrations/openid-connect", (_req, res) => {
-    res..status(201).json({
+    res.status(201).json({
                "redirect_uris": [
                  "http://127.0.0.1:6274/oauth/callback/debug"
                ],
